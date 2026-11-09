@@ -23,7 +23,9 @@ class Config:
     DATABASE = os.path.join(BASE_DIR, "traffic_detection.db")
 
     # CORS
-    CORS_ORIGINS = ["http://localhost:5173"]
+    CORS_ORIGINS = os.environ.get(
+        "CORS_ORIGINS", "*"
+    ).split(",")
 
     # Allowed video extensions
     ALLOWED_EXTENSIONS = {"mp4", "avi", "mov"}

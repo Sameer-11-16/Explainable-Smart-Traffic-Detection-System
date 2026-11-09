@@ -4,9 +4,14 @@ Explainable Smart Traffic Detection System.
 """
 
 import os
+import sys
+
+# Ensure backend directory is in sys.path wherever Python or Gunicorn is invoked
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+if _base_dir not in sys.path:
+    sys.path.insert(0, _base_dir)
 
 # Configure cache directories to prevent permission issues
-_base_dir = os.path.dirname(os.path.abspath(__file__))
 os.environ.setdefault("MPLCONFIGDIR", os.path.join(_base_dir, ".mplconfig"))
 os.environ.setdefault("YOLO_CONFIG_DIR", os.path.join(_base_dir, ".yoloconfig"))
 
@@ -31,8 +36,8 @@ def create_app(config_class=Config):
     app.config["DATABASE"] = config_class.DATABASE
     app.config["ALLOWED_EXTENSIONS"] = config_class.ALLOWED_EXTENSIONS
 
-    # Enable CORS
-    CORS(app, origins=config_class.CORS_ORIGINS, supports_credentials=True)
+    # Enable CORS for all client domains
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     # Ensure required directories exist
     ensure_directory(app.config["UPLOAD_FOLDER"])

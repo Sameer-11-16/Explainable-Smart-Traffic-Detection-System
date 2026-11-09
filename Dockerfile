@@ -33,10 +33,12 @@ COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 # Pre-download YOLO weights
 RUN python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
 
-EXPOSE 5000
-
+# Set PYTHONPATH so backend modules (config, models, routes, services) are always findable
+ENV PYTHONPATH=/app/backend:$PYTHONPATH
 ENV FLASK_ENV=production
-ENV PORT=5000
+ENV PORT=10000
 
-CMD ["gunicorn", "backend.app:create_app()", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "4", "--timeout", "120"]
+EXPOSE 10000
+
+CMD exec gunicorn "backend.app:create_app()" --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
 
