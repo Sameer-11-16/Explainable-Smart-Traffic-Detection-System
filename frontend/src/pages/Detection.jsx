@@ -38,7 +38,7 @@ function Detection() {
     setSessionsLoading(true)
     try {
       const data = await getDetectionSessions()
-      setSessions(data.sessions || data || [])
+      setSessions(Array.isArray(data?.sessions) ? data.sessions : Array.isArray(data) ? data : [])
     } catch {
       /* ignore */
     } finally {
@@ -368,7 +368,7 @@ function Detection() {
           <LoadingSpinner size="sm" message="Loading sessions..." />
         ) : sessions.length > 0 ? (
           <div className="space-y-2">
-            {sessions.map((s, i) => (
+            {Array.isArray(sessions) && sessions.map((s, i) => (
               <div
                 key={s.id || s.session_id || i}
                 className="flex items-center justify-between bg-[#252525] rounded-lg px-4 py-3 hover:bg-[#333333] transition-colors"

@@ -38,7 +38,7 @@ function Analysis() {
       setSessionsLoading(true)
       try {
         const data = await getDetectionSessions()
-        const list = data.sessions || data || []
+        const list = Array.isArray(data?.sessions) ? data.sessions : Array.isArray(data) ? data : []
         setSessions(list)
         if (!selectedSession && list.length > 0) {
           setSelectedSession(String(list[0].id || list[0].session_id))
@@ -102,7 +102,7 @@ function Analysis() {
             className="w-full max-w-md bg-[#252525] border border-[#333333] text-white rounded-lg px-4 py-2 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition-colors"
           >
             <option value="">Choose a session</option>
-            {sessions.map((s) => (
+            {Array.isArray(sessions) && sessions.map((s) => (
               <option key={s.id || s.session_id} value={s.id || s.session_id}>
                 #{s.id || s.session_id} — {s.filename || s.file_name || 'Video'}
               </option>

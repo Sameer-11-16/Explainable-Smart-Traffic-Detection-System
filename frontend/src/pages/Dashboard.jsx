@@ -40,9 +40,17 @@ function Dashboard() {
         getDashboardHistory(),
         getRecentSessions(),
       ])
-      if (statsRes.status === 'fulfilled') setStats(statsRes.value)
-      if (historyRes.status === 'fulfilled') setHistory(historyRes.value.history || historyRes.value || [])
-      if (recentRes.status === 'fulfilled') setRecent(recentRes.value.sessions || recentRes.value || [])
+      if (statsRes.status === 'fulfilled' && statsRes.value && typeof statsRes.value === 'object') {
+        setStats(statsRes.value)
+      }
+      if (historyRes.status === 'fulfilled') {
+        const val = historyRes.value
+        setHistory(Array.isArray(val?.history) ? val.history : Array.isArray(val) ? val : [])
+      }
+      if (recentRes.status === 'fulfilled') {
+        const val = recentRes.value
+        setRecent(Array.isArray(val?.sessions) ? val.sessions : Array.isArray(val) ? val : [])
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -57,7 +65,7 @@ function Dashboard() {
   if (loading) return <LoadingSpinner size="lg" message="Loading dashboard..." />
   if (error) return <ErrorMessage message={error} onRetry={fetchData} />
 
-  const hasData = stats && (stats.total_vehicles > 0 || recent.length > 0)
+  const hasData = stats && (stats.total_vehicles > 0 || (Array.isArray(recent) && recent.length > 0))
 
   const vehiclePieData = stats
     ? [
@@ -261,7 +269,7 @@ function Dashboard() {
           {/* Recent Sessions */}
           <div className="bg-[#1a1a1a] rounded-xl border border-[#333333] p-6 shadow-lg">
             <h3 className="text-sm font-medium text-[#a3a3a3] mb-4">Recent Detection Sessions</h3>
-            {recent.length > 0 ? (
+            {Array.isArray(recent) && recent.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

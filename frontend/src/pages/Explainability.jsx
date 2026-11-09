@@ -61,7 +61,8 @@ export default function Explainability() {
         ])
 
         if (sessData.status === 'fulfilled') {
-          const list = sessData.value.sessions || sessData.value || []
+          const val = sessData.value
+          const list = Array.isArray(val?.sessions) ? val.sessions : Array.isArray(val) ? val : []
           setSessions(list)
           if (!selectedSession && list.length > 0) {
             setSelectedSession(String(list[0].id || list[0].session_id))
@@ -69,14 +70,16 @@ export default function Explainability() {
         }
 
         if (featData.status === 'fulfilled') {
-          const rawFeat = featData.value.feature_importance || featData.value || []
-          // Format for recharts
+          const val = featData.value
+          const rawFeat = val?.feature_importance || val
           const formatted = Array.isArray(rawFeat)
             ? rawFeat
-            : Object.entries(rawFeat).map(([feature, importance]) => ({
+            : (rawFeat && typeof rawFeat === 'object')
+            ? Object.entries(rawFeat).map(([feature, importance]) => ({
                 feature: feature.replace(/_/g, ' '),
                 importance: Number(importance),
               }))
+            : []
           formatted.sort((a, b) => b.importance - a.importance)
           setGlobalImportance(formatted)
         }
@@ -179,7 +182,7 @@ export default function Explainability() {
                 disabled={sessionsLoading || sessions.length === 0}
                 className="bg-transparent text-sm text-white font-medium focus:outline-none cursor-pointer"
               >
-                {sessions.length === 0 ? (
+                {!Array.isArray(sessions) || sessions.length === 0 ? (
                   <option value="" className="bg-[#1a1a1a]">No sessions available</option>
                 ) : (
                   sessions.map((s) => (
@@ -360,7 +363,7 @@ export default function Explainability() {
                 </div>
               </div>
 
-              {explanation.key_factors && explanation.key_factors.length > 0 && (
+              {Array.isArray(explanation.key_factors) && explanation.key_factors.length > 0 && (
                 <div className="mt-4">
                   <div className="text-xs text-neutral-400 font-semibold mb-2">Key Contributing Factors:</div>
                   <div className="flex flex-wrap gap-2">

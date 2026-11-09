@@ -25,7 +25,7 @@ export default function Reports() {
     setError(null)
     try {
       const data = await getReports()
-      const list = data.reports || data.sessions || data || []
+      const list = Array.isArray(data?.reports) ? data.reports : Array.isArray(data?.sessions) ? data.sessions : Array.isArray(data) ? data : []
       setReports(list)
     } catch (err) {
       setError(err.message || 'Failed to fetch reports')
@@ -58,7 +58,8 @@ export default function Reports() {
   }
 
   // Filtered reports
-  const filtered = reports.filter((r) => {
+  const safeReports = Array.isArray(reports) ? reports : []
+  const filtered = safeReports.filter((r) => {
     const filename = r.original_filename || r.filename || ''
     const matchesSearch = filename.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesFilter =
