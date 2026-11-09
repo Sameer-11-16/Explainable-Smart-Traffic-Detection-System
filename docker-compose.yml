@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  smart-traffic-app:
+    build: .
+    container_name: smart_traffic_detection
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - PORT=5000
+    volumes:
+      - ./backend/traffic_detection.db:/app/backend/traffic_detection.db
+      - ./backend/uploads:/app/backend/uploads
+      - ./backend/processed:/app/backend/processed
+    restart: unless-stopped
+

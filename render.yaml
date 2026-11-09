@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: explainable-smart-traffic-detection
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "cd frontend && pnpm install && pnpm run build && cd ../backend && pip install -r requirements.txt"
+    startCommand: "cd backend && gunicorn app:create_app() --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FLASK_ENV
+        value: production
+
