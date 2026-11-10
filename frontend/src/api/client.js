@@ -1,6 +1,19 @@
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const PROD_API_URL = 'https://explainable-smart-traffic-detection.onrender.com/api'
+
+let rawBase = import.meta.env.VITE_API_URL
+if (!rawBase || rawBase === '/api') {
+  rawBase = import.meta.env.PROD ? PROD_API_URL : '/api'
+}
+rawBase = (rawBase || '/api').trim()
+if (rawBase.startsWith('http://') || rawBase.startsWith('https://')) {
+  rawBase = rawBase.replace(/\/+$/, '')
+  if (!rawBase.endsWith('/api')) {
+    rawBase = `${rawBase}/api`
+  }
+}
+export const API_BASE = rawBase
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -23,12 +36,16 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
+    const status = error.response?.status
+    const url = error.config?.url
+    const method = error.config?.method?.toUpperCase()
     const message =
       error.response?.data?.error ||
       error.response?.data?.message ||
-      error.message ||
-      'An unexpected error occurred'
-    console.error('API Error:', message)
+      (status === 405
+        ? `HTTP 405 Method Not Allowed on [${method} ${url}]. Connected to ${API_BASE}`
+        : error.message || 'An unexpected error occurred')
+    console.error(`API Error [${method} ${url} -> ${status}]:`, message)
     return Promise.reject(new Error(message))
   }
 )

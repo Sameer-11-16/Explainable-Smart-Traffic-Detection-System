@@ -4,6 +4,14 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://explainable-smart-traffic-detection.onrender.com/api/:path*"
+    },
+    {
+      "source": "/processed/:path*",
+      "destination": "https://explainable-smart-traffic-detection.onrender.com/processed/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
