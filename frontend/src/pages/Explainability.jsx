@@ -75,11 +75,11 @@ export default function Explainability() {
           const formatted = Array.isArray(rawFeat)
             ? rawFeat
             : (rawFeat && typeof rawFeat === 'object')
-            ? Object.entries(rawFeat).map(([feature, importance]) => ({
+              ? Object.entries(rawFeat).map(([feature, importance]) => ({
                 feature: feature.replace(/_/g, ' '),
                 importance: Number(importance),
               }))
-            : []
+              : []
           formatted.sort((a, b) => b.importance - a.importance)
           setGlobalImportance(formatted)
         }
@@ -127,17 +127,17 @@ export default function Explainability() {
   // Prepare SHAP chart data
   const shapChartData = explanation?.shap_values
     ? (Array.isArray(explanation.shap_values)
-        ? explanation.shap_values.map((item) => ({
-            name: (item.feature || item.name || '').replace(/_/g, ' '),
-            value: Number(item.shap_value ?? item.value ?? 0),
-            absVal: Math.abs(Number(item.shap_value ?? item.value ?? 0)),
-          }))
-        : Object.entries(explanation.shap_values).map(([k, v]) => ({
-            name: k.replace(/_/g, ' '),
-            value: Number(v),
-            absVal: Math.abs(Number(v)),
-          }))
-      ).sort((a, b) => b.absVal - a.absVal)
+      ? explanation.shap_values.map((item) => ({
+        name: (item.feature || item.name || '').replace(/_/g, ' '),
+        value: Number(item.shap_value ?? item.value ?? 0),
+        absVal: Math.abs(Number(item.shap_value ?? item.value ?? 0)),
+      }))
+      : Object.entries(explanation.shap_values).map(([k, v]) => ({
+        name: k.replace(/_/g, ' '),
+        value: Number(v),
+        absVal: Math.abs(Number(v)),
+      }))
+    ).sort((a, b) => b.absVal - a.absVal)
     : []
 
   return (
@@ -163,11 +163,10 @@ export default function Explainability() {
               setSimMode(!simMode)
               if (!simMode) handleSimulate()
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 border ${
-              simMode
-                ? 'bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/20'
-                : 'bg-[#1a1a1a] text-neutral-300 border-[#333333] hover:border-orange-500'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 border ${simMode
+              ? 'bg-orange-500 text-white border-orange-400 shadow-lg shadow-orange-500/20'
+              : 'bg-[#1a1a1a] text-neutral-300 border-[#333333] hover:border-orange-500'
+              }`}
           >
             <Sliders className="w-4 h-4" />
             {simMode ? 'Exit What-If Simulator' : 'What-If Simulator'}
