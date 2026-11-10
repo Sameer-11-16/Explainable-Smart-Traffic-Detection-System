@@ -69,16 +69,34 @@ function Analysis() {
     fetchAnalysis()
   }, [selectedSession])
 
+  const vb = analysis?.vehicle_breakdown || {}
   const vehicleComposition = analysis
     ? [
-        { name: 'Cars', count: analysis.cars || 0 },
-        { name: 'Motorcycles', count: analysis.motorcycles || 0 },
-        { name: 'Buses', count: analysis.buses || 0 },
-        { name: 'Trucks', count: analysis.trucks || 0 },
+        { name: 'Cars', count: analysis.cars ?? vb.cars ?? 0 },
+        { name: 'Motorcycles', count: analysis.motorcycles ?? vb.motorcycles ?? 0 },
+        { name: 'Buses', count: analysis.buses ?? vb.buses ?? 0 },
+        { name: 'Trucks', count: analysis.trucks ?? vb.trucks ?? 0 },
       ]
     : []
 
-  const densityOverTime = analysis?.density_over_time || []
+  const densityOverTime = Array.isArray(analysis?.density_over_time) && analysis.density_over_time.length > 0
+    ? analysis.density_over_time
+    : Array.isArray(analysis?.traffic_records)
+      ? analysis.traffic_records.map((r, i) => ({
+          time: typeof r.timestamp === 'number' ? `${r.timestamp.toFixed(1)}s` : r.timestamp || `${i * 2}s`,
+          density: Number(r.density) <= 1.0 && Number(r.density) > 0 ? Number((r.density * 100).toFixed(1)) : Number(r.density || 0),
+          vehicle_count: r.vehicle_count || 0,
+          avg_speed: Number(r.avg_speed || 0).toFixed(1),
+        }))
+      : []
+
+  const rawDensity = analysis?.density ?? analysis?.metrics?.avg_density ?? 0
+  const densityVal = rawDensity <= 1.0 && rawDensity > 0 ? (rawDensity * 100).toFixed(1) : Number(rawDensity || 0).toFixed(1)
+
+  const rawOccupancy = analysis?.road_occupancy ?? analysis?.metrics?.avg_density ?? 0
+  const occupancyVal = rawOccupancy <= 1.0 && rawOccupancy > 0 ? (rawOccupancy * 100).toFixed(1) : Number(rawOccupancy || 0).toFixed(1)
+
+  const speedVal = analysis?.avg_speed ?? analysis?.metrics?.avg_speed ?? 0
 
   return (
     <div className="space-y-6">
@@ -132,12 +150,12 @@ function Analysis() {
                 <span className="text-sm font-medium text-[#a3a3a3]">Traffic Density</span>
               </div>
               <p className="text-3xl font-bold text-white">
-                {analysis.density != null ? `${Number(analysis.density).toFixed(1)}%` : 'N/A'}
+                {`${densityVal}%`}
               </p>
               <div className="w-full h-2 bg-[#252525] rounded-full overflow-hidden mt-3">
                 <div
                   className="h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full transition-all duration-700"
-                  style={{ width: `${Math.min(analysis.density || 0, 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(Number(densityVal) || 0, 0), 100)}%` }}
                 />
               </div>
             </div>
@@ -149,14 +167,12 @@ function Analysis() {
                 <span className="text-sm font-medium text-[#a3a3a3]">Road Occupancy</span>
               </div>
               <p className="text-3xl font-bold text-white">
-                {analysis.road_occupancy != null
-                  ? `${Number(analysis.road_occupancy).toFixed(1)}%`
-                  : 'N/A'}
+                {`${occupancyVal}%`}
               </p>
               <div className="w-full h-2 bg-[#252525] rounded-full overflow-hidden mt-3">
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-700"
-                  style={{ width: `${Math.min(analysis.road_occupancy || 0, 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(Number(occupancyVal) || 0, 0), 100)}%` }}
                 />
               </div>
             </div>
@@ -168,9 +184,7 @@ function Analysis() {
                 <span className="text-sm font-medium text-[#a3a3a3]">Avg Speed</span>
               </div>
               <p className="text-3xl font-bold text-white">
-                {analysis.avg_speed != null
-                  ? `${Number(analysis.avg_speed).toFixed(0)}`
-                  : 'N/A'}
+                {Number(speedVal || 0).toFixed(0)}
               </p>
               <p className="text-xs text-[#737373] mt-1">km/h estimated</p>
             </div>

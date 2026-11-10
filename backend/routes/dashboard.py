@@ -67,10 +67,19 @@ def get_stats():
             "total_motorcycles": row["total_motorcycles"],
             "total_buses": row["total_buses"],
             "total_trucks": row["total_trucks"],
+            # Direct aliases for frontend UI
+            "cars": row["total_cars"],
+            "motorcycles": row["total_motorcycles"],
+            "buses": row["total_buses"],
+            "trucks": row["total_trucks"],
+            "vehicle_count": row["total_vehicles"],
             "avg_processing_time": round(row["avg_processing_time"], 2),
             "current_density": density,
+            "density": round(density * 100, 1) if (0 < density <= 1.0) else round(density, 1),
             "current_congestion": congestion,
+            "congestion_level": congestion,
             "current_avg_speed": avg_speed,
+            "avg_speed": avg_speed,
             "latest_vehicle_count": latest_vehicle_count,
         }
         return success_response(data)
@@ -110,17 +119,19 @@ def get_history():
         for r in rows:
             history.append({
                 "session_id": r["id"],
+                "session": f"#{r['id']}",
                 "filename": r["original_filename"],
                 "upload_time": r["upload_time"],
                 "total_vehicles": r["total_vehicles"],
-                "cars": r["cars"],
-                "motorcycles": r["motorcycles"],
-                "buses": r["buses"],
-                "trucks": r["trucks"],
-                "processing_time": r["processing_time"],
-                "density": r["density"] or 0,
+                "total": r["total_vehicles"],
+                "cars": r["cars"] or 0,
+                "motorcycles": r["motorcycles"] or 0,
+                "buses": r["buses"] or 0,
+                "trucks": r["trucks"] or 0,
+                "processing_time": r["processing_time"] or 0,
+                "density": round((r["density"] or 0) * 100, 1) if (0 < (r["density"] or 0) <= 1.0) else round(r["density"] or 0, 1),
                 "congestion_level": r["congestion_level"] or "Low",
-                "avg_speed": r["avg_speed"] or 0,
+                "avg_speed": round(r["avg_speed"] or 0, 1),
             })
 
         return success_response(history)
@@ -131,9 +142,33 @@ def get_history():
 
 @dashboard_bp.route("/recent", methods=["GET"])
 def get_recent():
-    """Return the 10 most recent detection sessions (any status)."""
+    """Return the 10 most recent detection sessions with enriched traffic metrics."""
     try:
-        sessions = get_all_sessions(limit=10)
+        conn = get_db()
+        rows = conn.execute("""
+            SELECT ds.*, 
+                   COALESCE(tr.congestion_level, 'Low') AS congestion_level,
+                   COALESCE(tr.density, 0) AS density,
+                   COALESCE(tr.avg_speed, 0) AS avg_speed
+            FROM detection_sessions ds
+            LEFT JOIN (
+                SELECT session_id, congestion_level, density, avg_speed,
+                       ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY id DESC) as rn
+                FROM traffic_records
+            ) tr ON tr.session_id = ds.id AND tr.rn = 1
+            ORDER BY ds.upload_time DESC
+            LIMIT 10
+        """).fetchall()
+        conn.close()
+
+        sessions = []
+        for r in rows:
+            d = dict(r)
+            d["filename"] = d.get("original_filename") or d.get("filename") or f"Session #{d.get('id')}"
+            d["created_at"] = d.get("upload_time")
+            d["date"] = d.get("upload_time")
+            sessions.append(d)
+
         return success_response(sessions)
     except Exception as exc:
         return error_response(f"Failed to fetch recent sessions: {exc}", 500)

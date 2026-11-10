@@ -31,23 +31,36 @@ def get_session_analysis(session_id):
         speeds = [r["avg_speed"] for r in records]
         vehicle_counts = [r["vehicle_count"] for r in records]
 
+        avg_density = round(sum(densities) / len(densities), 4)
+        avg_speed_val = round(sum(speeds) / len(speeds), 2)
+        density_pct = round(avg_density * 100, 1) if (0 < avg_density <= 1.0) else round(avg_density, 1)
+
         analysis = {
             "session_id": session_id,
             "filename": session["original_filename"],
             "upload_time": session["upload_time"],
             "processing_time": session["processing_time"],
             "total_vehicles": session["total_vehicles"],
+            # Top-level counts for UI charts and stat cards:
+            "cars": session["cars"] or 0,
+            "motorcycles": session["motorcycles"] or 0,
+            "buses": session["buses"] or 0,
+            "trucks": session["trucks"] or 0,
             "vehicle_breakdown": {
-                "cars": session["cars"],
-                "motorcycles": session["motorcycles"],
-                "buses": session["buses"],
-                "trucks": session["trucks"],
+                "cars": session["cars"] or 0,
+                "motorcycles": session["motorcycles"] or 0,
+                "buses": session["buses"] or 0,
+                "trucks": session["trucks"] or 0,
             },
+            # Top-level metrics for quick display:
+            "density": density_pct,
+            "road_occupancy": density_pct,
+            "avg_speed": avg_speed_val,
             "metrics": {
-                "avg_density": round(sum(densities) / len(densities), 4),
+                "avg_density": avg_density,
                 "max_density": round(max(densities), 4),
                 "min_density": round(min(densities), 4),
-                "avg_speed": round(sum(speeds) / len(speeds), 2),
+                "avg_speed": avg_speed_val,
                 "max_speed": round(max(speeds), 2),
                 "min_speed": round(min(speeds), 2),
                 "max_vehicle_count": max(vehicle_counts),
@@ -55,6 +68,15 @@ def get_session_analysis(session_id):
             },
             "congestion_level": records[-1]["congestion_level"],
             "traffic_records": records,
+            "density_over_time": [
+                {
+                    "time": f"{r['timestamp']:.1f}s" if isinstance(r.get("timestamp"), (int, float)) else str(r.get("timestamp", "")),
+                    "density": round(r["density"] * 100, 1) if (0 < r.get("density", 0) <= 1.0) else round(r.get("density", 0), 1),
+                    "vehicle_count": r.get("vehicle_count", 0),
+                    "avg_speed": round(r.get("avg_speed", 0), 1),
+                }
+                for r in records
+            ],
         }
     else:
         analysis = {
@@ -63,12 +85,19 @@ def get_session_analysis(session_id):
             "upload_time": session["upload_time"],
             "processing_time": session["processing_time"],
             "total_vehicles": session["total_vehicles"],
+            "cars": session["cars"] or 0,
+            "motorcycles": session["motorcycles"] or 0,
+            "buses": session["buses"] or 0,
+            "trucks": session["trucks"] or 0,
             "vehicle_breakdown": {
-                "cars": session["cars"],
-                "motorcycles": session["motorcycles"],
-                "buses": session["buses"],
-                "trucks": session["trucks"],
+                "cars": session["cars"] or 0,
+                "motorcycles": session["motorcycles"] or 0,
+                "buses": session["buses"] or 0,
+                "trucks": session["trucks"] or 0,
             },
+            "density": 0,
+            "road_occupancy": 0,
+            "avg_speed": 0,
             "metrics": {
                 "avg_density": 0,
                 "max_density": 0,
@@ -81,6 +110,7 @@ def get_session_analysis(session_id):
             },
             "congestion_level": "Low",
             "traffic_records": [],
+            "density_over_time": [],
         }
 
     return success_response(analysis)

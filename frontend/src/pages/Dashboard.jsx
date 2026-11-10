@@ -45,11 +45,29 @@ function Dashboard() {
       }
       if (historyRes.status === 'fulfilled') {
         const val = historyRes.value
-        setHistory(Array.isArray(val?.history) ? val.history : Array.isArray(val) ? val : [])
+        const rawHistory = Array.isArray(val?.history) ? val.history : Array.isArray(val) ? val : []
+        const normalizedHistory = rawHistory.map((h, idx) => ({
+          ...h,
+          session: h.session || `#${h.session_id || h.id || idx + 1}`,
+          total: h.total ?? h.total_vehicles ?? h.vehicle_count ?? 0,
+          cars: h.cars ?? 0,
+          motorcycles: h.motorcycles ?? 0,
+          buses: h.buses ?? 0,
+          trucks: h.trucks ?? 0,
+        }))
+        setHistory(normalizedHistory)
       }
       if (recentRes.status === 'fulfilled') {
         const val = recentRes.value
-        setRecent(Array.isArray(val?.sessions) ? val.sessions : Array.isArray(val) ? val : [])
+        const rawRecent = Array.isArray(val?.sessions) ? val.sessions : Array.isArray(val) ? val : []
+        const normalizedRecent = rawRecent.map((s, idx) => ({
+          ...s,
+          filename: s.filename || s.original_filename || s.file_name || `Session #${s.id || idx + 1}`,
+          created_at: s.created_at || s.upload_time || s.date,
+          congestion_level: s.congestion_level || 'Low',
+          total_vehicles: s.total_vehicles ?? s.vehicle_count ?? 0,
+        }))
+        setRecent(normalizedRecent)
       }
     } catch (err) {
       setError(err.message)
@@ -65,16 +83,23 @@ function Dashboard() {
   if (loading) return <LoadingSpinner size="lg" message="Loading dashboard..." />
   if (error) return <ErrorMessage message={error} onRetry={fetchData} />
 
-  const hasData = stats && (stats.total_vehicles > 0 || (Array.isArray(recent) && recent.length > 0))
+  const totalVehicles = stats?.total_vehicles ?? stats?.vehicle_count ?? 0
+  const cars = stats?.cars ?? stats?.total_cars ?? 0
+  const motorcycles = stats?.motorcycles ?? stats?.total_motorcycles ?? 0
+  const buses = stats?.buses ?? stats?.total_buses ?? 0
+  const trucks = stats?.trucks ?? stats?.total_trucks ?? 0
+  const congestionLevel = stats?.congestion_level || stats?.current_congestion || (recent.length > 0 ? recent[0].congestion_level : 'Low')
+  const rawDensity = stats?.density ?? stats?.current_density ?? (recent.length > 0 ? recent[0].density : 0)
+  const densityPercent = rawDensity <= 1.0 && rawDensity > 0 ? (rawDensity * 100).toFixed(1) : Number(rawDensity || 0).toFixed(1)
 
-  const vehiclePieData = stats
-    ? [
-        { name: 'Cars', value: stats.cars || 0 },
-        { name: 'Motorcycles', value: stats.motorcycles || 0 },
-        { name: 'Buses', value: stats.buses || 0 },
-        { name: 'Trucks', value: stats.trucks || 0 },
-      ].filter((d) => d.value > 0)
-    : []
+  const hasData = (stats && (totalVehicles > 0 || (stats.completed_sessions || 0) > 0)) || (Array.isArray(recent) && recent.length > 0)
+
+  const vehiclePieData = [
+    { name: 'Cars', value: cars },
+    { name: 'Motorcycles', value: motorcycles },
+    { name: 'Buses', value: buses },
+    { name: 'Trucks', value: trucks },
+  ].filter((d) => d.value > 0)
 
   return (
     <div className="space-y-6">
@@ -103,26 +128,26 @@ function Dashboard() {
             <StatCard
               icon={Car}
               label="Total Vehicles"
-              value={formatNumber(stats?.total_vehicles || 0)}
+              value={formatNumber(totalVehicles)}
               subtitle="All detected vehicles"
               gradient
             />
             <StatCard
               icon={Car}
               label="Cars"
-              value={formatNumber(stats?.cars || 0)}
+              value={formatNumber(cars)}
               subtitle="Sedans & hatchbacks"
             />
             <StatCard
               icon={Bike}
               label="Motorcycles"
-              value={formatNumber(stats?.motorcycles || 0)}
+              value={formatNumber(motorcycles)}
               subtitle="Two-wheelers"
             />
             <StatCard
               icon={Bus}
               label="Buses & Trucks"
-              value={formatNumber((stats?.buses || 0) + (stats?.trucks || 0))}
+              value={formatNumber(buses + trucks)}
               subtitle="Heavy vehicles"
             />
           </div>
@@ -134,18 +159,18 @@ function Dashboard() {
               <h3 className="text-sm font-medium text-[#a3a3a3] mb-4">Congestion Status</h3>
               <div className="flex items-center gap-4">
                 <div
-                  className={`flex items-center justify-center w-16 h-16 rounded-xl ${getCongestionBg(stats?.congestion_level)}`}
+                  className={`flex items-center justify-center w-16 h-16 rounded-xl ${getCongestionBg(congestionLevel)}`}
                 >
                   <AlertCircle
                     className="h-8 w-8"
-                    style={{ color: getCongestionColor(stats?.congestion_level) }}
+                    style={{ color: getCongestionColor(congestionLevel) }}
                   />
                 </div>
                 <div>
                   <p
-                    className={`text-2xl font-bold capitalize ${getCongestionText(stats?.congestion_level)}`}
+                    className={`text-2xl font-bold capitalize ${getCongestionText(congestionLevel)}`}
                   >
-                    {stats?.congestion_level || 'Unknown'}
+                    {congestionLevel || 'Unknown'}
                   </p>
                   <p className="text-sm text-[#737373]">Current traffic condition</p>
                 </div>
@@ -158,14 +183,14 @@ function Dashboard() {
               <div className="space-y-3">
                 <div className="flex justify-between items-end">
                   <span className="text-3xl font-bold text-white">
-                    {stats?.density != null ? `${Number(stats.density).toFixed(1)}%` : 'N/A'}
+                    {`${densityPercent}%`}
                   </span>
                   <span className="text-sm text-[#737373]">vehicles / area</span>
                 </div>
                 <div className="w-full h-3 bg-[#252525] rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-700"
-                    style={{ width: `${Math.min(stats?.density || 0, 100)}%` }}
+                    style={{ width: `${Math.min(Math.max(Number(densityPercent) || 0, 0), 100)}%` }}
                   />
                 </div>
               </div>
