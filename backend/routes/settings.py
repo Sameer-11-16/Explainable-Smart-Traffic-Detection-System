@@ -13,7 +13,8 @@ settings_bp = Blueprint("settings", __name__, url_prefix="/api/settings")
 VALID_KEYS = {"confidence_threshold", "frame_skip", "max_video_duration"}
 
 
-@settings_bp.route("", methods=["GET"])
+@settings_bp.route("", methods=["GET"], strict_slashes=False)
+@settings_bp.route("/", methods=["GET"], strict_slashes=False)
 def get_all_settings():
     """Return all settings."""
     try:
@@ -27,7 +28,8 @@ def get_all_settings():
         return error_response(f"Failed to fetch settings: {exc}", 500)
 
 
-@settings_bp.route("", methods=["PUT"])
+@settings_bp.route("", methods=["PUT", "POST"], strict_slashes=False)
+@settings_bp.route("/", methods=["PUT", "POST"], strict_slashes=False)
 def update_settings():
     """Update one or more settings. Expects JSON body with key-value pairs."""
     data = request.get_json(silent=True)

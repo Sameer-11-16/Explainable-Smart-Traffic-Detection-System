@@ -47,7 +47,10 @@ def create_app(config_class=Config):
     with app.app_context():
         init_db()
 
-    # ---- Register blueprints ----
+    # Disable strict slashes so endpoints match with or without trailing slash
+    app.url_map.strict_slashes = False
+
+    # ---- Register blueprints (both with /api/ and direct for resilience) ----
     from routes.detection import detection_bp
     from routes.dashboard import dashboard_bp
     from routes.analysis import analysis_bp
@@ -56,11 +59,22 @@ def create_app(config_class=Config):
     from routes.settings import settings_bp
 
     app.register_blueprint(detection_bp)
+    app.register_blueprint(detection_bp, url_prefix="/detection", name="detection_direct")
+
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(dashboard_bp, url_prefix="/dashboard", name="dashboard_direct")
+
     app.register_blueprint(analysis_bp)
+    app.register_blueprint(analysis_bp, url_prefix="/analysis", name="analysis_direct")
+
     app.register_blueprint(explainability_bp)
+    app.register_blueprint(explainability_bp, url_prefix="/explain", name="explain_direct")
+
     app.register_blueprint(reports_bp)
+    app.register_blueprint(reports_bp, url_prefix="/reports", name="reports_direct")
+
     app.register_blueprint(settings_bp)
+    app.register_blueprint(settings_bp, url_prefix="/settings", name="settings_direct")
 
     # ---- Serve processed videos as static files ----
     @app.route("/processed/<path:filename>")
@@ -71,6 +85,7 @@ def create_app(config_class=Config):
 
     # ---- Health check ----
     @app.route("/api/health", methods=["GET"])
+    @app.route("/health", methods=["GET"])
     def health_check():
         return jsonify({"success": True, "message": "API is running"}), 200
 
@@ -81,12 +96,29 @@ def create_app(config_class=Config):
         "dist",
     )
 
-    @app.route("/", defaults={"path": ""})
-    @app.route("/<path:path>")
+    @app.route("/", defaults={"path": ""}, methods=["GET"])
+    @app.route("/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
     def serve_frontend_app(path):
         """Serve compiled frontend SPA for production deployment."""
-        if path.startswith("api/") or path == "api" or path.startswith("processed/"):
-            return jsonify({"success": False, "error": "Endpoint not found"}), 404
+        api_prefixes = (
+            "api/",
+            "processed/",
+            "detection/",
+            "dashboard/",
+            "analysis/",
+            "explain/",
+            "reports/",
+            "settings/",
+        )
+        if path == "api" or path.startswith(api_prefixes):
+            return jsonify({"success": False, "error": f"Endpoint not found: /{path}"}), 404
+
+        from flask import request
+        if request.method != "GET":
+            return jsonify({
+                "success": False,
+                "error": f"Method {request.method} not allowed on frontend path /{path}",
+            }), 405
 
         if os.path.exists(dist_dir):
             file_path = os.path.join(dist_dir, path)

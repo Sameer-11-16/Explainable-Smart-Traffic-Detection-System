@@ -12,7 +12,8 @@ from utils.helpers import success_response, error_response
 reports_bp = Blueprint("reports", __name__, url_prefix="/api/reports")
 
 
-@reports_bp.route("", methods=["GET"])
+@reports_bp.route("", methods=["GET"], strict_slashes=False)
+@reports_bp.route("/", methods=["GET"], strict_slashes=False)
 def list_reports():
     """List all completed sessions as available reports."""
     try:

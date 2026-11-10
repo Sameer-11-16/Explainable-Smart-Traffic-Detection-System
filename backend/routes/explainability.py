@@ -11,8 +11,10 @@ from utils.helpers import success_response, error_response
 explainability_bp = Blueprint("explainability", __name__, url_prefix="/api/explain")
 
 
-@explainability_bp.route("", methods=["POST"])
-@explainability_bp.route("/metrics", methods=["POST"])
+@explainability_bp.route("", methods=["POST"], strict_slashes=False)
+@explainability_bp.route("/", methods=["POST"], strict_slashes=False)
+@explainability_bp.route("/metrics", methods=["POST"], strict_slashes=False)
+@explainability_bp.route("/metrics/", methods=["POST"], strict_slashes=False)
 def explain():
     """
     Accept traffic metrics in JSON body and return a SHAP-based explanation.
